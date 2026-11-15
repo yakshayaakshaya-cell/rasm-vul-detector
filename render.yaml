@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: rasm-vul
+    name: rasm-vul-detector
     runtime: python
     plan: starter            # a persistent disk needs a paid plan
     buildCommand: pip install -r requirements.txt && python scripts/bootstrap.py
