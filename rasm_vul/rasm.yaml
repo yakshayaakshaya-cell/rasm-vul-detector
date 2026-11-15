@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: rasm-vul
+    runtime: python
+    plan: starter            # a persistent disk needs a paid plan
+    buildCommand: pip install -r requirements.txt && python scripts/bootstrap.py
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: EMBEDDER
+        value: hash
+      - key: ADMIN_TOKEN
+        generateValue: true  # Render creates a random token; read it under Environment
+      - key: FEEDBACK_DIR
+        value: /var/data/feedback
+      - key: STATIC_TOOLS
+        value: "off"
+    disk:
+      name: rasm-data
+      mountPath: /var/data
+      sizeGB: 1

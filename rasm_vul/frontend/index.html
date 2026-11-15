@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#07111f">
+<title>RASM-Vul · Vulnerability triage</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3z' fill='%2307111f' stroke='%232dd4bf' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='m9 12 2 2 4-4' fill='none' stroke='%2322d3ee' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+
+  <aside class="rail">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2dd4bf"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3z" fill="#0c2a3d" stroke="url(#lg)" stroke-width="1.7" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" fill="none" stroke="url(#lg)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div><b>RASM-Vul</b><span>Vulnerability triage</span></div>
+    </div>
+
+    <nav class="nav" role="tablist" aria-label="Tools">
+      <button role="tab" data-t="detect" aria-selected="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>Detect</button>
+      <button role="tab" data-t="scan" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>Scan file</button>
+      <button role="tab" data-t="patch" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.2"/><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="9" r="2.2"/><path d="M6 8.2v7.6M18 11.2c0 4-6 2.5-10.2 5.2"/></svg>Patch check</button>
+      <button role="tab" data-t="eval" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 20V4M4 20h16"/><path d="m8 15 3.5-4 3 2.5L19 7"/></svg>Evaluation</button>
+      <button role="tab" data-t="review" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="m8.5 10.5 2 2 4-4"/></svg>Review<span id="review-count" class="count" hidden></span></button>
+    </nav>
+
+    <div class="status" id="status" aria-label="Server status"></div>
+  </aside>
+
+  <div class="stage">
+    <header class="topbar">
+      <div><h1 id="page-title">Detect</h1><p id="page-sub"></p></div>
+      <div class="thr" id="thr-box">
+        <div class="thr-top"><label for="thr">Decision threshold</label><output id="thr-val" for="thr">0.50</output><button type="button" id="thr-reset">Reset</button></div>
+        <input type="range" id="thr" min="0" max="1" step="0.01" value="0.5" aria-describedby="thr-help">
+        <div class="thr-ends" id="thr-help"><span>Catch more</span><span>Fewer false alarms</span></div>
+      </div>
+    </header>
+
+    <main>
+      <!-- DETECT -->
+      <section id="detect" class="pane on" role="tabpanel">
+        <div class="split">
+          <div class="panel">
+            <label class="field-label" for="code">C / C++ function</label>
+            <textarea id="code" rows="15" spellcheck="false" placeholder="Paste one function here"></textarea>
+            <details class="more">
+              <summary>Add called functions as context</summary>
+              <p class="hint">Paste the bodies of helpers this function calls. They go into the LLM prompt and their risky API calls count toward the score.</p>
+              <textarea id="ctx" rows="6" spellcheck="false" placeholder="static void helper(char *d, const char *s) { ... }"></textarea>
+            </details>
+            <div class="row">
+              <label class="opt" id="static-opt"><input type="checkbox" id="use-static" checked><span>Add flawfinder / cppcheck findings</span></label>
+            </div>
+            <div class="row">
+              <button class="btn" id="go">Analyze function</button>
+              <button class="btn ghost" id="sample" type="button">Load example</button>
+              <span class="hint">Ctrl + Enter also runs it</span>
+            </div>
+          </div>
+          <div id="out" aria-live="polite">
+            <div class="empty"><h3>No analysis yet</h3><p>Paste a function and analyze it. The result shows a risk score, why it scored that way, and the closest historical fixes.</p><button class="btn ghost" id="sample2" type="button">Try an example</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCAN -->
+      <section id="scan" class="pane" role="tabpanel">
+        <div class="panel">
+          <div class="drop" id="drop">
+            <div><strong id="file-name">Drop a .c or .cpp file here</strong><span class="hint" id="file-hint">The file is split into functions and ranked by risk.</span></div>
+            <div class="row" style="margin:0"><input type="file" id="file" accept=".c,.h,.cc,.cpp,.cxx,.hpp" class="sr"><button class="btn ghost small" type="button" id="pick">Choose file</button><button class="btn ghost small" type="button" id="scan-sample">Load example file</button></div>
+          </div>
+          <label class="field-label" for="scode" style="margin-top:14px">Or paste the file</label>
+          <textarea id="scode" rows="9" spellcheck="false" placeholder="#include &lt;string.h&gt;&#10;&#10;void handler(const char *in) { ... }"></textarea>
+          <div class="row">
+            <label class="opt"><input type="checkbox" id="s-ctx" checked><span>Add called functions from the same file</span></label>
+            <label class="opt" id="s-static-opt"><input type="checkbox" id="s-static" checked><span>Run flawfinder / cppcheck</span></label>
+            <label class="opt" id="s-llm-opt"><input type="checkbox" id="s-llm"><span>Use the LLM (slower)</span></label>
+            <label class="opt"><span>Max functions</span><input type="number" id="s-max" min="1" max="100" value="25"></label>
+          </div>
+          <div class="row"><button class="btn" id="sgo">Scan file</button><span class="hint" id="scan-hint"></span></div>
+        </div>
+        <div id="sout" style="margin-top:20px" aria-live="polite"></div>
+      </section>
+
+      <!-- PATCH -->
+      <section id="patch" class="pane" role="tabpanel">
+        <div class="panel">
+          <div class="two">
+            <div><label class="field-label" for="oldc">Before</label><textarea id="oldc" rows="13" spellcheck="false" placeholder="Old version of the function"></textarea></div>
+            <div><label class="field-label" for="newc">After</label><textarea id="newc" rows="13" spellcheck="false" placeholder="Patched version of the function"></textarea></div>
+          </div>
+          <div class="row"><button class="btn" id="pgo">Check patch</button><button class="btn ghost" id="psample" type="button">Load example</button></div>
+        </div>
+        <div id="pout" style="margin-top:20px" aria-live="polite"></div>
+      </section>
+
+      <!-- EVAL -->
+      <section id="eval" class="pane" role="tabpanel"><div id="eout">Loading…</div></section>
+
+      <!-- REVIEW -->
+      <section id="review" class="pane" role="tabpanel"><div id="rout"></div></section>
+    </main>
+
+    <footer>Screening aid only. A human reviews every flag, and lowering the threshold trades precision for recall.</footer>
+  </div>
+</div>
+<div id="toasts" role="status" aria-live="polite"></div>
+<script src="app.js"></script>
+</body>
+</html>

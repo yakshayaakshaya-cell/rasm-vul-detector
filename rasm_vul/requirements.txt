@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+numpy
+pydantic
+# For paper-faithful embeddings (UniXCoder) - needed when building the real KB:
+# torch
+# transformers
+# Optional real ASTs (falls back to a token skeleton):
+# tree-sitter-languages
+# Enhancement 5 (optional): the paper's baseline static analyzers. flawfinder is pure Python:
+flawfinder
+# cppcheck is an OS package (apt install cppcheck); the app works without it.
